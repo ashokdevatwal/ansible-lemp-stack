@@ -1,0 +1,136 @@
+# Install PHP, Nginx, Composer, Redis, Supervisor, MySql
+---
+- hosts: "{{ target_host }}"
+  become: yes
+  become_method: sudo
+  remote_user: ubuntu
+  vars:
+    php_version: 7.4
+    composer_version: 2.4.4
+    mysql_root_password: "yH$%hdiAC4XqC8Zz"
+    phpmyadmin_mysql_user: "root"
+  tasks:
+    - name: Set timezone to Asia/Kolkata
+      timezone:
+        name: Asia/Kolkata
+
+    - name: Update and Upgrade apt Packages
+      apt:
+        upgrade: yes
+
+    # Add Required Repositories
+    - name: Add Repositories ppa:ondrej/php
+      apt_repository:
+        repo: "ppa:ondrej/php"
+        state: present
+
+    # Update APT
+    - name: Update and Upgrade apt Packages
+      apt:
+        upgrade: yes
+
+    - name: install software-properties-common
+      apt:
+        name: software-properties-common
+        state: latest
+
+    - name: Install Nginx
+      apt: name=nginx state=latest
+
+    - name: Install Redis package
+      apt:
+        name: redis-server
+        state: present
+
+    - name: Install supervisor package
+      apt:
+        name: supervisor
+        state: present
+
+    - name: Install PHP {{ php_version }} and required modules
+      apt:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - php{{ php_version }}
+        - php{{ php_version }}-fpm
+        - php{{ php_version }}-cli
+        - php{{ php_version }}-common
+        - php{{ php_version }}-mbstring
+        - php{{ php_version }}-xml
+        - php{{ php_version }}-curl
+        - php{{ php_version }}-json
+        - php{{ php_version }}-sqlite3
+        - php{{ php_version }}-mysql
+        - php{{ php_version }}-zip
+        - php{{ php_version }}-bcmath
+        - php{{ php_version }}-dom
+        - php{{ php_version }}-gd
+        - php{{ php_version }}-opcache
+        - php{{ php_version }}-redis
+
+    - name: Installing Packages And Dependencies
+      package:
+        name: "{{item}}"
+        state: present
+        update_cache: yes
+      loop:
+        - mysql-server
+        - mysql-client
+        - python3-mysqldb
+        - libmysqlclient-dev
+
+    # MySQL Configuration
+    - name: Sets the root password
+      mysql_user:
+        name: root
+        password: "{{ mysql_root_password }}"
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+
+    - name: Removes all anonymous user accounts
+      mysql_user:
+        name: ""
+        host_all: yes
+        state: absent
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+
+    - name: Removes the MySQL test database
+      mysql_db:
+        name: test
+        state: absent
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+
+    - name: Install composer
+      apt:
+        name: composer
+        state: present
+
+    # - name: Download Composer
+    #   shell: curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer --version={{ composer_version }}
+    # - name: move composer to PATH
+    #   shell: mv /usr/local/bin/composer /usr/bin/
+
+    # Restart Services
+    - name: Restart Nginx
+      service:
+        name: nginx
+        state: restarted
+
+    - name: Start Redis service
+      service:
+        name: redis-server
+        state: restarted
+
+    - name: Start and enable supervisor service
+      systemd:
+        name: supervisor
+        state: restarted
+        enabled: yes
+
+    - name: Start and enable mysql service
+      service:
+        name: mysql
+        state: started
+        enabled: yes
