@@ -14,10 +14,12 @@ Installation
 Clone the repository on master controller machine
 
     git clone https://github.com/ashokdevatwal/ansible-lemp-stack.git
-
+    
+Change current working directory to ansible-lemp-stack
 
     cd ansible-lemp-stack
-
+    
+Run Playbook
 
     ansible-playbook lemp-stack.yaml --extra-vars "target_host=host_name"
 
